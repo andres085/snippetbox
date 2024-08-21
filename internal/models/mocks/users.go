@@ -29,3 +29,21 @@ func (m *UserModel) Exists(id int) (bool, error) {
 		return false, nil
 	}
 }
+
+var mockUser = models.User{
+	ID:    1,
+	Name:  "TestUser",
+	Email: "test@mail.com",
+}
+
+func (m *UserModel) Get(id int) (
+	models.User,
+	error,
+) {
+	switch id {
+	case 1:
+		return mockUser, nil
+	default:
+		return models.User{}, models.ErrNoRecord
+	}
+}

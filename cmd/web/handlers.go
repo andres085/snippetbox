@@ -166,6 +166,7 @@ func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
 	data.Form = userLoginForm{}
 	app.render(w, r, http.StatusOK, "login.tmpl", data)
 }
+
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	var form userLoginForm
 
@@ -208,6 +209,13 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 
 	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
 
+	redirectPath := app.sessionManager.PopString(r.Context(), "redirectPath")
+
+	if redirectPath != "" {
+		http.Redirect(w, r, redirectPath, http.StatusSeeOther)
+		return
+	}
+
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
@@ -227,4 +235,26 @@ func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
 
 func ping(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("OK"))
+}
+
+func (app *application) accountView(w http.ResponseWriter, r *http.Request) {
+
+	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+
+	fmt.Print(userId)
+
+	user, err := app.users.Get(userId)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.User = user
+
+	app.render(w, r, http.StatusOK, "account.tmpl", data)
 }
